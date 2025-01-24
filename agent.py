@@ -2,45 +2,69 @@ from utils.ssl.Navigation import Navigation
 from utils.ssl.base_agent import BaseAgent
 from utils.Point import Point
 import math
+import numpy as np
+
+# from scipy.optimize import linear_sum_assignment  # Algoritmo de Hungarian - https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.linear_sum_assignment.html#scipy.optimize.linear_sum_assignment
+from hungarian import my_linear_sum_assignment as assign_targets
 
 class ExampleAgent(BaseAgent):
     def __init__(self, id=0, yellow=False):
         super().__init__(id, yellow)
+        self.assignment = dict()  # Dicionário de atribuição {robot_id: target}
 
     def decision(self):
         if len(self.targets) == 0:  # Nenhum alvo disponível
             return
 
-        # Calcula qual robô azul está mais próximo do alvo
-        closest_robot_id = None
-        closest_distance = float('inf')
+        # Obter lista de IDs dos robôs disponíveis na equipe
+        my_agents = list(self.teammates.keys())
 
-        for robot_id, robot in self.teammates.items():
-            # Calcula a distância do robô ao alvo
-            distance = Point(robot.x, robot.y).dist_to(self.targets[0])
-            if distance < closest_distance:
-                closest_distance = distance
-                closest_robot_id = robot_id
+        # Passo 1: Calcular a matriz de custos (distâncias) entre robôs e alvos
+        cost_matrix = self.calculate_cost_matrix(my_agents)
 
-        # Verifica se o robô atual é o mais próximo
-        if closest_robot_id != self.id:
-            return
+        # Passo 2: Resolver o problema de atribuição com o algoritmo Hungarian
+        #print(cost_matrix, end='\n\n----------------\n\n')
+        robot_indices, target_indices = assign_targets(cost_matrix)
 
-        # Posição atual e alvo
-        current_position = Point(self.robot.x, self.robot.y)
-        target_position = self.targets[0]
+        # Atualizar a atribuição
+        self.assignment = {my_agents[robot]: self.targets[target] 
+                           for robot, target in zip(robot_indices, target_indices)}
 
-        # Ajusta a rota para evitar colisões com robôs amarelos
-        adjusted_target = self.avoid_obstacles(current_position, target_position)
+        # Passo 3: Executar a tarefa se o robô atual tem um alvo atribuído
+        if self.id in self.assignment:
+            assigned_target = self.assignment[self.id]
 
-        # Calcula a velocidade para ir ao alvo ajustado
-        target_velocity, target_angle_velocity = Navigation.goToPoint(self.robot, adjusted_target)
-        velocity_factor = 0.5
+            # Posição atual e alvo
+            current_position = Point(self.robot.x, self.robot.y)
+            adjusted_target = self.avoid_obstacles(current_position, assigned_target)
 
-        # Define velocidades
-        self.set_vel(target_velocity * velocity_factor)
-        self.set_angle_vel(target_angle_velocity)
-        return
+            # Calcular velocidades para o alvo ajustado
+            target_velocity, target_angle_velocity = Navigation.goToPoint(self.robot, adjusted_target)
+            velocity_factor = 0.5
+
+            # Definir velocidades
+            self.set_vel(target_velocity * velocity_factor)
+            self.set_angle_vel(target_angle_velocity)
+
+    def calculate_cost_matrix(self, my_agents):
+        """
+        Calcula a matriz de custos entre os robôs e os alvos.
+        O custo é baseado na distância euclidiana entre cada robô e cada alvo.
+        """
+        num_agents = len(my_agents)
+        num_targets = len(self.targets)
+
+        # Inicializa a matriz de custos com zeros
+        
+        cost_matrix = np.zeros((num_agents, num_targets))
+
+        for i, robot_id in enumerate(my_agents):
+            robot = self.teammates[robot_id]  # Posição do robô
+            for j, target in enumerate(self.targets):
+                # Calcula a distância euclidiana entre o robô e o alvo
+                cost_matrix[i, j] = Point(robot.x, robot.y).dist_to(target)
+
+        return cost_matrix
 
     def avoid_obstacles(self, current_position, target_position):
         safe_distance = 0.35  # Distância mínima segura dos obstáculos
@@ -70,4 +94,29 @@ class ExampleAgent(BaseAgent):
         return adjusted_position
 
     def post_decision(self):
-        pass
+        """
+        Garantir que qualquer robô sem alvo atribuído vá para o alvo mais próximo disponível.
+        """
+        if self.id not in self.assignment:  # Robô não tem alvo atribuído
+            # Encontre o alvo mais próximo
+            closest_target = None
+            closest_distance = float('inf')
+            current_position = Point(self.robot.x, self.robot.y)
+
+            for target in self.targets:
+                distance = current_position.dist_to(target)
+                if distance < closest_distance:
+                    closest_distance = distance
+                    closest_target = target
+
+            if closest_target:
+                # Calcular rota até o alvo mais próximo
+                adjusted_target = self.avoid_obstacles(current_position, closest_target)
+                target_velocity, target_angle_velocity = Navigation.goToPoint(self.robot, adjusted_target)
+                velocity_factor = 0.5
+
+                # Definir velocidades
+                self.set_vel(target_velocity * velocity_factor)
+                self.set_angle_vel(target_angle_velocity)
+
+        return
