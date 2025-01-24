@@ -24,27 +24,61 @@ class ExampleAgent(BaseAgent):
 
         # Passo 2: Resolver o problema de atribuição com o algoritmo Hungarian
         #print(cost_matrix, end='\n\n----------------\n\n')
-        robot_indices, target_indices = assign_targets(cost_matrix)
+        assignments = assign_targets(cost_matrix)
 
         # Atualizar a atribuição
-        self.assignment = {my_agents[robot]: self.targets[target] 
-                           for robot, target in zip(robot_indices, target_indices)}
+        self.assignment = {my_agents[robot_ID]: self.targets[target_ID] 
+                           for robot_ID, target_ID in assignments}
 
         # Passo 3: Executar a tarefa se o robô atual tem um alvo atribuído
+        if self.id not in self.assignment:
+            return
+        
+        assigned_target  = self.assignment[self.id]
+        current_position = Point(self.robot.x, self.robot.y)
+
+        adjusted_target = self.avoid_obstacles(current_position, assigned_target)
+
+        # Calcular velocidades para o alvo ajustado
+        target_velocity, target_angle_velocity = Navigation.goToPoint(self.robot, adjusted_target)
+        velocity_factor = 0.5
+
+        # Definir velocidades
+        self.set_vel(target_velocity * velocity_factor)
+        self.set_angle_vel(target_angle_velocity)
+        return
+    
+    def post_decision(self):
+        """
+        Garantir que qualquer robô sem alvo atribuído vá para o alvo mais próximo disponível.
+        """
         if self.id in self.assignment:
-            assigned_target = self.assignment[self.id]
+            # Early return, never nested
+            return
+        
+        closest_target = None
+        closest_distance = float('inf')
+        current_position = Point(self.robot.x, self.robot.y)
 
-            # Posição atual e alvo
-            current_position = Point(self.robot.x, self.robot.y)
-            adjusted_target = self.avoid_obstacles(current_position, assigned_target)
+        for target in self.targets:
+            distance = current_position.dist_to(target)
+            if distance < closest_distance:
+                closest_distance = distance
+                closest_target = target
 
-            # Calcular velocidades para o alvo ajustado
-            target_velocity, target_angle_velocity = Navigation.goToPoint(self.robot, adjusted_target)
-            velocity_factor = 0.5
+        if not closest_target:
+            return
+        
+        # Calcular rota até o alvo mais próximo
+        adjusted_target = self.avoid_obstacles(current_position, closest_target)
+        target_velocity, target_angle_velocity = Navigation.goToPoint(self.robot, adjusted_target)
+        velocity_factor = 0.5
 
-            # Definir velocidades
-            self.set_vel(target_velocity * velocity_factor)
-            self.set_angle_vel(target_angle_velocity)
+        # Definir velocidades
+        self.set_vel(target_velocity * velocity_factor)
+        self.set_angle_vel(target_angle_velocity)
+
+        return
 
     def calculate_cost_matrix(self, my_agents):
         """
@@ -75,48 +109,23 @@ class ExampleAgent(BaseAgent):
             obstacle_position = Point(opponent.x, opponent.y)
             distance_to_obstacle = current_position.dist_to(obstacle_position)
 
-            # Verifica se o obstáculo está dentro da zona de risco
-            if distance_to_obstacle < safe_distance:
-                # Calcula o vetor de repulsão
-                angle_to_obstacle = math.atan2(
-                    obstacle_position.y - current_position.y,
-                    obstacle_position.x - current_position.x,
-                )
-                repulsion_x = -math.cos(angle_to_obstacle) * adjustment_factor
-                repulsion_y = -math.sin(angle_to_obstacle) * adjustment_factor
+            # Se o não obstáculo estiver dentro da zona de risco, não é necessário desviar dele
+            if not distance_to_obstacle < safe_distance:
+                # Never nested
+                continue
+            
+            # Calcula o vetor de repulsão
+            angle_to_obstacle = math.atan2(
+                obstacle_position.y - current_position.y,
+                obstacle_position.x - current_position.x,
+            )
+            repulsion_x = -math.cos(angle_to_obstacle) * adjustment_factor
+            repulsion_y = -math.sin(angle_to_obstacle) * adjustment_factor
 
-                # Ajusta o destino final para desviar do obstáculo
-                adjusted_position = Point(
-                    adjusted_position.x + repulsion_x,
-                    adjusted_position.y + repulsion_y,
-                )
+            # Ajusta o destino final para desviar do obstáculo
+            adjusted_position = Point(
+                adjusted_position.x + repulsion_x,
+                adjusted_position.y + repulsion_y,
+            )
 
         return adjusted_position
-
-    def post_decision(self):
-        """
-        Garantir que qualquer robô sem alvo atribuído vá para o alvo mais próximo disponível.
-        """
-        if self.id not in self.assignment:  # Robô não tem alvo atribuído
-            # Encontre o alvo mais próximo
-            closest_target = None
-            closest_distance = float('inf')
-            current_position = Point(self.robot.x, self.robot.y)
-
-            for target in self.targets:
-                distance = current_position.dist_to(target)
-                if distance < closest_distance:
-                    closest_distance = distance
-                    closest_target = target
-
-            if closest_target:
-                # Calcular rota até o alvo mais próximo
-                adjusted_target = self.avoid_obstacles(current_position, closest_target)
-                target_velocity, target_angle_velocity = Navigation.goToPoint(self.robot, adjusted_target)
-                velocity_factor = 0.5
-
-                # Definir velocidades
-                self.set_vel(target_velocity * velocity_factor)
-                self.set_angle_vel(target_angle_velocity)
-
-        return
