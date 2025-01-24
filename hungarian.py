@@ -1,5 +1,9 @@
 import numpy as np
 
+# OBS: idealmente, esse arquivo estaria salvo na pasta "utils" do projeto. 
+#      Porém, para simplificar a compreensão do que foi alterado/criado por mim, 
+#      ele foi salvo na pasta raiz do projeto.
+
 def my_linear_sum_assignment(cost_matrix):
     def min_zero_row(zero_matrix, marked_zeros):
         """
@@ -114,4 +118,4 @@ def my_linear_sum_assignment(cost_matrix):
     col_indices = np.array(col_indices)
     valid_indices = (row_indices < num_rows) & (col_indices < num_cols)
 
-    return row_indices[valid_indices], col_indices[valid_indices]
+    return zip(row_indices[valid_indices], col_indices[valid_indices])
