@@ -4,8 +4,7 @@ from utils.Point import Point
 import math
 import numpy as np
 
-# from scipy.optimize import linear_sum_assignment  # Algoritmo de Hungarian - https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.linear_sum_assignment.html#scipy.optimize.linear_sum_assignment
-from hungarian import my_linear_sum_assignment as assign_targets
+from hungarian import Hungarian
 
 class ExampleAgent(BaseAgent):
     def __init__(self, id=0, yellow=False):
@@ -24,7 +23,7 @@ class ExampleAgent(BaseAgent):
 
         # Passo 2: Resolver o problema de atribuição com o algoritmo Hungarian
         #print(cost_matrix, end='\n\n----------------\n\n')
-        assignments = assign_targets(cost_matrix)
+        assignments = Hungarian.solve(cost_matrix)
 
         # Atualizar a atribuição
         self.assignment = {my_agents[robot_ID]: self.targets[target_ID] 
