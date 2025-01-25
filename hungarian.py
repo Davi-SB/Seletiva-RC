@@ -4,13 +4,12 @@
 
 import numpy as np
 
+# Implementação do algoritmo húngaro para resolver o problema de atribuição linear
 class Hungarian:
+    # Encontra a linha com o menor número de zeros disponíveis e marca
+    # um desses zeros (linha, coluna) para a solução.
     @staticmethod
     def min_zero_row(zero_matrix, marked_zeros):
-        """
-        Encontra a linha com o menor número de zeros disponíveis e marca
-        um desses zeros (linha, coluna) para a solução.
-        """
         min_row = [float('inf'), -1]  # Armazena o menor número de zeros e o índice da linha correspondente
 
         # Identificar a linha com o menor número de zeros
@@ -25,12 +24,11 @@ class Hungarian:
         zero_matrix[min_row[1], :] = False  # Remove todos os zeros da linha
         zero_matrix[:, col_index] = False  # Remove todos os zeros da coluna
 
+    # Marca zeros na matriz e identifica linhas e colunas a serem cobertas
     @staticmethod
     def mark_matrix(matrix):
-        """
-        Determina os zeros que serão marcados como solução inicial e
-        quais linhas e colunas devem ser cobertas.
-        """
+        # Determina os zeros que serão marcados como solução inicial e
+        # quais linhas e colunas devem ser cobertas.
         zero_matrix = (matrix == 0)  # Cria uma matriz booleana onde zeros são True
         marked_zeros = []  # Lista para armazenar as marcações dos zeros
 
@@ -63,12 +61,10 @@ class Hungarian:
         covered_rows = set(range(matrix.shape[0])) - uncovered_rows  # Linhas cobertas
         return covered_rows, covered_cols
 
+    # Ajusta a matriz subtraindo o menor elemento não coberto e adicionando
+    # aos elementos cobertos duas vezes.
     @staticmethod
     def adjust_matrix(matrix, covered_rows, covered_cols):
-        """
-        Ajusta a matriz subtraindo o menor elemento não coberto e adicionando
-        aos elementos cobertos duas vezes.
-        """
         # Coleta todos os valores não cobertos
         uncovered_values = [
             matrix[row, col]
@@ -85,13 +81,12 @@ class Hungarian:
                     matrix[row, col] -= min_value
                 elif row in covered_rows and col in covered_cols:
                     matrix[row, col] += min_value
+        return
 
+    # Resolve o problema de atribuição linear utilizando o algoritmo húngaro.
+    # Retorna os pares de índices das atribuições.
     @staticmethod
     def solve(cost_matrix):
-        """
-        Resolve o problema de atribuição linear utilizando o algoritmo húngaro.
-        Retorna os pares de índices das atribuições.
-        """
         # Garantir que a matriz seja quadrada
         num_rows, num_cols = cost_matrix.shape
         if num_rows != num_cols:
@@ -100,14 +95,14 @@ class Hungarian:
             padded_matrix[:num_rows, :num_cols] = cost_matrix  # Copia a matriz original para a nova matriz
             cost_matrix = padded_matrix
 
-        # Passo 1: Normalizar a matriz
+        # Normalizar a matriz
         for row in range(cost_matrix.shape[0]):
             cost_matrix[row] -= np.min(cost_matrix[row])  # Subtrai o menor valor de cada linha
 
         for col in range(cost_matrix.shape[1]):
             cost_matrix[:, col] -= np.min(cost_matrix[:, col])  # Subtrai o menor valor de cada coluna
 
-        # Passos 2 e 3: Iterar até que todas as linhas e colunas sejam cobertas
+        # Iterar até que todas as linhas e colunas sejam cobertas
         while True:
             covered_rows, covered_cols = Hungarian.mark_matrix(cost_matrix)  # Identifica linhas e colunas cobertas
             total_covered = len(covered_rows) + len(covered_cols)
@@ -117,7 +112,7 @@ class Hungarian:
 
             Hungarian.adjust_matrix(cost_matrix, covered_rows, covered_cols)  # Ajusta a matriz para cobrir mais zeros
 
-        # Passo 4: Identificar a solução final (pares de índices)
+        # Identificar a solução final (pares de índices)
         zero_matrix = (cost_matrix == 0)  # Cria uma matriz booleana para identificar zeros
         marked_zeros = []
         while np.any(zero_matrix):  # Enquanto existirem zeros na matriz
