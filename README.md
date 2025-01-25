@@ -1,108 +1,66 @@
+# Projeto: Agente de Planejamento de Trajetórias e Atribuição de Tarefas
 
-# Bem-vindos ao repositório do projeto de software! 🥳
+Bem-vindo ao repositório do projeto! Este documento detalha o desenvolvimento de um agente autônomo que realiza planejamento de trajetórias e atribuição de tarefas em um ambiente simulado. O projeto explora soluções para problemas complexos, como evitar colisões, desvio de obstáculos dinâmicos e distribuição de tarefas.
 
-Este repositório concentra toda a base de código que será usado nesta seletiva. Nele, estão disponibilizados tanto o ambiente simulado para testar o código desenvolvido quanto o arquivo base para o desenvolvimento, no qual deverão ser integradas as mudanças que forem feitas. O projeto consiste em desenvolver formas de solucionar os problemas de planejamento de trajetória e de atribuição de tarefas para os agentes do ambiente. Para mais detalhes do projeto, reveja o documento de especificação no nosso site: https://www.robocin.com.br/seletiva.
+## **Visão Geral**
 
-## Dependências
+### Objetivos do Projeto
 
-- [Python](https://www.python.org/]) versão 3.10.x
-- [Git](https://git-scm.com/)
-- [Pygame](https://www.pygame.org/news)
-- [Gymnasium](https://gymnasium.farama.org/index.html) versão 0.29.1
-- [Protobuf](https://protobuf.dev/) versão 3.20
-- [rSoccer](https://github.com/goncamateus/rSoccer)
-- [PyVirtualDisplay](https://github.com/ponty/PyVirtualDisplay) versão 3.0 ou acima
-- [MoviePy](https://pypi.org/project/moviepy/) versão 1.0.0 ou acima
-- [Numpy](https://numpy.org/) versão 1.21.2
-- [Argparse](https://docs.python.org/3.10/library/argparse.html)
+- Implementar lógicas para que o robô desvie de obstáculos enquanto navega até um alvo.
+- Distribuir tarefas entre vários robôs, minimizando o tempo total de conclusão e maximizando a eficiência.
+- **Execução Eficiente:** Garantir que todos os robôs estejam sempre cooperando, sem ficarem ociosos.
 
-Exceto o Python e o Git, as dependências podem ser instaladas com:
+## **Arquivos Importantes**
 
-```bash
-  pip install -r requirements.txt
-```
+### 1. **agent.py**
 
-Caso a sua versão do Python não seja a correta, [esse tutorial](https://gist.github.com/rutcreate/c0041e842f858ceb455b748809763ddb) explica como instalar a versão correta no Linux.
+O arquivo principal que define o comportamento do agente.
 
-## Instalação
+- **Módulos Implementados:**
+  - **Planejamento de Trajetória:** Cálculo de velocidades para o robô ir ao alvo enquanto desvia de obstáculos.
+  - **Atribuição de Tarefas:** Uso do algoritmo húngaro para distribuir alvos da melhor forma possível.
+  - **Desvio de Obstáculos:** Implementação de desvio baseado em vetores de repulsão.
 
-### Linux
+### 2. **hungarian.py**
 
-1. Crie um [fork](https://docs.github.com/pt/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo) desse repositório.
+Implementação manual do algoritmo húngaro para resolver problemas de atribuição linear.
 
-2. Clone o repositório.
-```bash
-  git clone https://github.com/NomeDoUsuario/software-project.git
-```
+- **Funções Chave:**
+  - `solve`: Resolve a matriz de custos e retorna os pares ótimos de atribuição.
+  - `mark_matrix` e `adjust_matrix`: Lógicas internas para cobrir zeros e ajustar a matriz durante a iteração.
 
-3. Entre na diretório do repositório clonado.
-```bash
-  cd software-project
-```
+## **Funcionalidades do Agente**
 
-4. Dentro da pasta, use o comando de instalação das dependências.
-```bash
-  pip install -r requirements.txt
-```
+### 1. **Atribuição de Tarefas com o Algoritmo Húngaro**
 
-### Windows (WSL)
+- Resolve o problema de atribuição de robôs aos alvos para minimizar o custo total (tempo e distância).
+- Suporte para matrizes de custo retangulares (número de robôs e alvos diferente).
+- Evita soluções subótimas, garantindo que o tempo total de coleta dos alvos seja minimizado.
+- Eficiência temporal de ordem polinomial
 
-Será necessário usar o WSL (Windows Subsystem for Linux) para ser capaz de rodar o projeto no Windows.
+### 2. **Desvio de Obstáculos Dinâmicos**
 
-1. Instale o WSL. 
-[Esse tutorial](https://medium.com/@charles.guinand/installing-wsl2-python-and-virtual-environments-on-windows-11-with-vs-code-a-comprehensive-guide-32db3c1a5847#:~:text=4.2%20Install%20the%20WSL%20Extension,%E2%80%9D%20and%20click%20%E2%80%9CInstall.%E2%80%9D) explica como instalar o WSL, o Python e como fazer a integração com o Visual Studio Code.
+- Implementação de repulsão vetorial para desviar de robôs oponentes.
+- Parâmetros configuráveis para distância segura e intensidade do desvio:
+  - `safe_distance`: Define o raio de detecção de obstáculos.
+  - `adjustment_factor`: Controla a intensidade do desvio.
 
-2. Crie um [fork](https://docs.github.com/pt/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo) desse repositório.
+### 3. **Manutenção de Atividade**
 
-3. Clone o repositório.
-```bash
-  git clone https://github.com/NomeDoUsuario/software-project.git
-```
+- Nenhum robô fica ocioso. Robôs sem tarefas atribuídas procuram o alvo mais próximo disponível.
+- Implementado no método `post_decision`.
 
-4. Entre na diretório do repositório clonado.
-```bash
-  cd software-project
-```
+## **Como executar**
 
-5. Dentro da pasta, use o comando de instalação das dependências.
-```bash
-  pip install -r requirements.txt
-```
+Siga as instruções abaixo para configurar o projeto.
 
-### MacOS
+### **Dependências**
 
-1. Instale o [Homebrew](https://brew.sh/) e a versão do [Pyenv](https://github.com/pyenv/pyenv) para instalação do Python
+Certifique-se de instalar as dependências listadas no arquivo `requirements.txt`:
 
 ```bash
-  brew install pyenv
-  pyenv install 3.10
-  pyenv global 3.10
+pip install -r requirements.txt
 ```
-
-2. Crie um [fork](https://docs.github.com/pt/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo) desse repositório.
-
-3. Clone o repositório.
-```bash
-  git clone https://github.com/NomeDoUsuario/software-project.git
-```
-
-4. Entre na diretório do repositório clonado.
-```bash
-  cd software-project
-```
-
-5. Instale a [ODE](https://www.ode.org/) (Open Dynamics Engine)
-```bash
-  brew install ode
-```
-
-6. Dentro da pasta, use o comando de instalação das dependências.
-```bash
-  pip install -r requirements.txt
-```
-⚠️ *OBS:* Para rodar no macOS com a configuração acima, utilize o comando `python3.10` ao invés de `python3` no passo a passo a seguir.
-
-Tudo pronto para rodar o projeto! 🚀
 
 ## Como rodar?
 
@@ -131,4 +89,15 @@ Para tirar dúvidas, use o comando com a flag `-h`:
   sudo apt install libode-dev
 ```
 
+## **Contribuições**
+
+Sugestões e melhorias são bem-vindas! Sinta-se à vontade para enviar um *pull request*.
+
+## **Licença**
+
+Este projeto está licenciado sob a [MIT License](LICENSE).
+
+## **Contato**
+
+Para mais informações, entre em contato pelo e-mail [davibrilhante0102@gmail.com](mailto\:davibrilhante0102@gmail.com).
 
